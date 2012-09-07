@@ -21,6 +21,14 @@ module XPath
         Expression.new(:axis, current, name, tag_name)
       end
 
+      def next_sibling(*expressions)
+        Expression.new(:next_sibling, current, expressions)
+      end
+
+      def previous_sibling(*expressions)
+        Expression.new(:previous_sibling, current, expressions)
+      end
+
       def anywhere(expression)
         Expression.new(:anywhere, expression)
       end
@@ -33,12 +41,12 @@ module XPath
         Expression.new(:contains, current, expression)
       end
 
-      def text
-        Expression.new(:text, current)
+      def starts_with(expression)
+        Expression.new(:starts_with, current, expression)
       end
 
-      def var(name)
-        Expression.new(:variable, name)
+      def text
+        Expression.new(:text, current)
       end
 
       def string
@@ -47,10 +55,6 @@ module XPath
 
       def css(selector)
         Expression.new(:css, current, Literal.new(selector))
-      end
-
-      def varstring(name)
-        var(name).string_literal
       end
     end
 
@@ -61,10 +65,6 @@ module XPath
         Expression.new(:where, current, expression)
       end
       alias_method :[], :where
-
-      def next_sibling(*expressions)
-        Expression.new(:next_sibling, current, expressions)
-      end
 
       def one_of(*expressions)
         Expression.new(:one_of, current, expressions)
@@ -97,10 +97,6 @@ module XPath
 
       def string_literal
         Expression.new(:string_literal, self)
-      end
-
-      def apply(variables={})
-        Expression.new(:applied, current, Literal.new(variables))
       end
 
       def normalize

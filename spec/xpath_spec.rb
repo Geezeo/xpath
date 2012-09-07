@@ -98,6 +98,16 @@ describe XPath do
     end
   end
 
+  describe '#previous_sibling' do
+    it "should find nodes which are exactly preceding the current node" do
+      xpath { |x| x.descendant(:p)[x.attr(:id) == 'wooDiv'].previous_sibling(:p) }.first.text.should == 'Bax'
+      xpath { |x| x.descendant(:p)[x.attr(:id) == 'wooDiv'].previous_sibling(:ul, :p) }.first.text.should == 'Bax'
+      xpath { |x| x.descendant(:p)[x.attr(:title) == 'gorilla'].previous_sibling(:ul, :p) }.first.text.should == 'A list'
+      xpath { |x| x.descendant(:p)[x.attr(:id) == 'wooDiv'].previous_sibling(:ul, :li) }.first.should be_nil
+      xpath { |x| x.descendant(:p)[x.attr(:id) == 'wooDiv'].previous_sibling }.first.text.should == 'Bax'
+    end
+  end
+
   describe '#anywhere' do
     it "should find nodes regardless of the context" do
       @results = xpath do |x|
@@ -120,6 +130,25 @@ describe XPath do
       @results = xpath do |x|
         expression = x.anywhere(:div).where(x.attr(:title) == 'fooDiv').attr(:id)
         x.descendant(:div).where(x.attr(:title).contains(expression))
+      end
+      @results[0][:id].should == "foo"
+    end
+  end
+
+  describe '#starts_with' do
+    it "should find nodes that begin with the given string" do
+      @results = xpath do |x|
+        x.descendant(:*).where(x.attr(:id).starts_with('foo'))
+      end
+      @results.size.should == 2
+      @results[0][:id].should == "foo"
+      @results[1][:id].should == "fooDiv"
+    end
+
+    it "should find nodes that contain the given expression" do
+      @results = xpath do |x|
+        expression = x.anywhere(:div).where(x.attr(:title) == 'fooDiv').attr(:id)
+        x.descendant(:div).where(x.attr(:title).starts_with(expression))
       end
       @results[0][:id].should == "foo"
     end
@@ -252,52 +281,13 @@ describe XPath do
     end
   end
 
-  describe '#apply and #var' do
-    it "should interpolate variables in the xpath expression" do
-      @xpath = XPath.generate do |x|
-        exp = x.descendant(:*).where(x.attr(:id) == x.var(:id).string_literal)
-      end
-      @result1 = doc.xpath(@xpath.apply(:id => 'foo').to_xpath).first
-      @result1[:title].should == 'fooDiv'
-      @result2 = doc.xpath(@xpath.apply(:id => 'baz').to_xpath).first
-      @result2[:title].should == 'bazDiv'
-    end
-
-    it "should raise an argument error if the interpolation key is not given" do
-      @xpath = XPath.generate { |x| x.descendant(:*).where(x.attr(:id) == x.var(:id).string_literal) }
-      if defined?(KeyError)
-        lambda { @xpath.apply.to_xpath }.should raise_error(KeyError)
-      else
-        lambda { @xpath.apply.to_xpath }.should raise_error(ArgumentError)
-      end
-    end
-  end
-
-  describe '#varstring' do
-    it "should add a literal string variable" do
-      @xpath = XPath.generate { |x| x.descendant(:*).where(x.attr(:id) == x.varstring(:id)) }
-      @result1 = doc.xpath(@xpath.apply(:id => 'foo').to_xpath).first
-      @result1[:title].should == 'fooDiv'
-    end
-  end
-
-  describe '#normalize' do
-    it "should normalize whitespace" do
-      xpath { |x| x.descendant(:p).where(x.text.normalize == 'A lot of whitespace') }.first[:id].should == "whitespace"
-    end
-
-    it "should be aliased as 'n'" do
-      xpath { |x| x.descendant(:p).where(x.text.n == 'A lot of whitespace') }.first[:id].should == "whitespace"
-    end
-  end
-
   describe '#union' do
     it "should create a union expression" do
       @expr1 = XPath.generate { |x| x.descendant(:p) }
       @expr2 = XPath.generate { |x| x.descendant(:div) }
       @collection = @expr1.union(@expr2)
       @xpath1 = @collection.where(XPath.attr(:id) == 'foo').to_xpath
-      @xpath2 = @collection.where(XPath.attr(:id) == XPath.varstring(:id)).apply(:id => 'fooDiv').to_xpath
+      @xpath2 = @collection.where(XPath.attr(:id) == 'fooDiv').to_xpath
       @results = doc.xpath(@xpath1)
       @results[0][:title].should == 'fooDiv'
       @results = doc.xpath(@xpath2)
@@ -309,7 +299,7 @@ describe XPath do
       @expr2 = XPath.generate { |x| x.descendant(:div) }
       @collection = @expr1 + @expr2
       @xpath1 = @collection.where(XPath.attr(:id) == 'foo').to_xpath
-      @xpath2 = @collection.where(XPath.attr(:id) == XPath.varstring(:id)).apply(:id => 'fooDiv').to_xpath
+      @xpath2 = @collection.where(XPath.attr(:id) == 'fooDiv').to_xpath
       @results = doc.xpath(@xpath1)
       @results[0][:title].should == 'fooDiv'
       @results = doc.xpath(@xpath2)

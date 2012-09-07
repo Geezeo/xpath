@@ -78,14 +78,6 @@ module XPath
       "%{#{name}}"
     end
 
-    def applied(expression, variables)
-      expression % variables
-    rescue ArgumentError # for ruby < 1.9 compat
-      expression.gsub(/%\{(\w+)\}/) do |_|
-        variables[$1.to_sym] or raise(ArgumentError, "expected variable #{$1} to be set")
-      end
-    end
-
     def text(current)
       "#{current}/text()"
     end
@@ -117,6 +109,10 @@ module XPath
       "contains(#{current}, #{value})"
     end
 
+    def starts_with(current, value)
+      "starts-with(#{current}, #{value})"
+    end
+
     def and(one, two)
       "(#{one} and #{two})"
     end
@@ -136,6 +132,16 @@ module XPath
         "#{current}/following-sibling::*[1]/self::*[#{element_names.map { |e| "self::#{e}" }.join(" | ")}]"
       else
         "#{current}/following-sibling::*[1]/self::*"
+      end
+    end
+
+    def previous_sibling(current, element_names)
+      if element_names.length == 1
+        "#{current}/preceding-sibling::*[1]/self::#{element_names.first}"
+      elsif element_names.length > 1
+        "#{current}/preceding-sibling::*[1]/self::*[#{element_names.map { |e| "self::#{e}" }.join(" | ")}]"
+      else
+        "#{current}/preceding-sibling::*[1]/self::*"
       end
     end
 
